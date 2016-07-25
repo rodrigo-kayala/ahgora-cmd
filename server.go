@@ -217,9 +217,7 @@ func ahgoraBatidas(w http.ResponseWriter, r *http.Request) {
 		text += "Restante - " + pending.String() + "\n"
 
 		if (batidasArrLen % 2 != 0) {
-			dateStr := todayStr + " " + strings.Trim(batidasArr[batidasArrLen-1], " ")
-			t1, _ := time.ParseInLocation("02/01/2006 15:04", dateStr, locSP)
-			text += "Sair as - " + t1.Add(pending).Format("15:04") + "\n"
+			text += "Sair as - " + now.Add(pending).Format("15:04") + "\n"
 		}
 	}
 

@@ -5,7 +5,7 @@ req() {
 	if [ "$2" != "" ]; then
 		user=$2
 	fi
-	curl -s "localhost:8080" -d "token=hospNwvYl5EdtWuoZvHiawfr" -d "text=$1" -d "user_name=$user";
+	curl -s "localhost:8080" -d "token=xRPuTAhD7scFGno6zbdcnwff" -d "text=$1" -d "user_name=$user";
 }
 
 assert() {
