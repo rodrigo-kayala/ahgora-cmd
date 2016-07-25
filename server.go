@@ -18,10 +18,7 @@ import (
 var app_token = "xRPuTAhD7scFGno6zbdcnwff"
 var trigger = "bot "
 
-var phpSessionId = ""
-var ahgoraCompany = "a382748"
-var ahgoraUser = "12662"
-var ahgoraPass = "1234"
+var sessions = map[string]string{}
 
 type SlackRequest struct {
 	Token        string
@@ -38,8 +35,8 @@ type SlackRequest struct {
 type AhgoraUser struct {
 	SlackUser string
 	Company   string
-	Login     float32
-	Password  float32
+	Login     string
+	Password  string
 }
 
 func init() {
@@ -77,7 +74,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	command = strings.Trim(command, " ")
 
 	if command == "batidas" {
-		ahgoraBatidas(w, r)
+		ahgoraBatidas(slackRequest.User_name, w, r)
+	} else if strings.Index(command, "reg ") == 0 {
+		register(slackRequest.User_name, command, w, r)
 	} else {
 		respond(w, "No command")
 	}
@@ -96,11 +95,11 @@ func getHtmlPart(reader io.Reader, startMark string, endMark string) (string, *S
 	return text, str, err
 }
 
-func ahgoraLogin(r *http.Request) string {
+func ahgoraLogin(user AhgoraUser, r *http.Request) string {
 	ctx := appengine.NewContext(r)
 	client := urlfetch.Client(ctx)
 
-	values := url.Values{"empresa": {ahgoraCompany}, "matricula": {ahgoraUser}, "senha": {ahgoraPass}}
+	values := url.Values{"empresa": {user.Company}, "matricula": {user.Login}, "senha": {user.Password}}
 	res, err := client.PostForm("https://www.ahgora.com.br/externo/login", values)
 
 	if err != nil {
@@ -132,20 +131,79 @@ func ahgoraLogin(r *http.Request) string {
 		}
 	}
 
-	phpSessionId = sessionId
+	sessions[user.SlackUser] = sessionId
 
 	return sessionId
 }
 
-func ahgoraBatidas(w http.ResponseWriter, r *http.Request) {
-	if phpSessionId == "" {
-		ahgoraLogin(r)
+func register(user string, command string, w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	k := datastore.NewKey(c, "AhgoraUser", user, 0, ahgoraUserKey(c))
+
+	var ahgoraUser AhgoraUser
+
+	err := datastore.Get(c, k, &ahgoraUser)
+
+	if (err != nil) {
+		if (err == datastore.ErrNoSuchEntity) {
+			userAndPassArr := strings.Split(strings.TrimPrefix(command, "reg "), ":")
+
+			if (len(userAndPassArr) != 2) {
+				panic("User and pass format must be user:pass")
+			}
+
+			ahgoraUser = AhgoraUser{
+				SlackUser: user,
+				Company:   "a382748",
+				Login:     userAndPassArr[0],
+				Password:  userAndPassArr[1],
+			}
+
+			t, err := datastore.Put(c, k, &ahgoraUser)
+			
+			fmt.Println(t)
+
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			respond(w, "Usuário cadastrado\nMatrícula: " + ahgoraUser.Login + "\nSenha: " + ahgoraUser.Password)
+		} else {
+			panic(err)
+		}
+	} else {
+		respond(w, "Usuário já cadastrado")
+	}
+}
+
+func ahgoraBatidas(user string, w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+
+	k := datastore.NewKey(c, "AhgoraUser", user, 0, ahgoraUserKey(c))
+
+	var ahgoraUser AhgoraUser
+
+	err := datastore.Get(c, k, &ahgoraUser)
+
+	if (err != nil) {
+		if (err == datastore.ErrNoSuchEntity) {
+			respond(w, "Usuário não cadastrado - cadastre-se => bot reg user:pass")
+			return
+		} else {
+			panic(err)
+		}
+	}
+
+	if sessions[user] == "" {
+		ahgoraLogin(ahgoraUser, r)
 	}
 
 	batidasUrl := "https://www.ahgora.com.br/externo/batidas"
 
 	headers := map[string]string{ "User-Agent": "gurbieta-bot", }
-	cookies := map[string]string{ "PHPSESSID": phpSessionId, }
+	cookies := map[string]string{ "PHPSESSID": sessions[user], }
 
 	res, err := makeRequest(r, batidasUrl, "GET", headers, cookies)
 

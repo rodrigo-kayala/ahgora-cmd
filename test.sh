@@ -17,4 +17,13 @@ assert() {
 }
 
 resp=$(req "bot batidas")
-assert '{"text":"batidas"}' "$resp"
+assert '{"text":"Usuário não cadastrado - cadastre-se =\u003e bot reg user:pass"}' "$resp"
+
+resp=$(req "bot reg 12662:1234")
+assert '{"text":"Usuário cadastrado\nMatrícula: 12662\nSenha: 1234"}' "$resp"
+
+resp=$(req "bot reg 12662:1234")
+assert '{"text":"Usuário já cadastrado"}' "$resp"
+
+resp=$(req "bot batidas")
+assert '{"text":"Usuário já cadastrado"}' "$resp"
