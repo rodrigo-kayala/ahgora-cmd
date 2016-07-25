@@ -47,7 +47,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	slackRequest := SlackRequest{
 		Token:     r.PostFormValue("token"),
 		User_name: r.PostFormValue("user_name"),
-		Text:      strings.ToLower(r.PostFormValue("text")),
+		Text:      r.PostFormValue("text"),
 	}
 
 	token := slackRequest.Token
