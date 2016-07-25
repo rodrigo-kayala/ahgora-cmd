@@ -223,7 +223,14 @@ func ahgoraBatidas(user string, w http.ResponseWriter, r *http.Request) {
 
 	todayStr := now.Format("02/01/2006")
 
-	start := todayStr + "                        \u003ctd rowspan=\"\"\u003e\n                                                        09:00 as 18:00 - 09:00 as 18:00                        \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
+	var start string
+
+	if (user != "gurbieta") {
+		start = todayStr + "                        \u003ctd rowspan=\"\"\u003e\n                                                        09:00 as 18:00 - 09:00 as 18:00                        \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
+	} else {
+		start = todayStr + "                        \u003ctd rowspan=\"\"\u003e\n                                                        08:00 as 17:00 - 08:00 as 17:00                        \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
+	}
+
 	end := "\u003c/td\u003e\n                        \u003ctd\u003e"
 
 	body, _, err := getHtmlPart(res.Body, start, end)
