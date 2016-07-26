@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,8 @@ const ahgoraUsernameEnv = "AHGORA_USERNAME"
 const ahgoraPasswordEnv = "AHGORA_PASSWORD"
 
 func main() {
+	flag.String("help", "", "display this help")
+	flag.Parse()
 
 	company := os.Getenv(ahgoraCompanyEnv)
 	if company == "" {
