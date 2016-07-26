@@ -241,6 +241,12 @@ func ahgoraBatidas(user string, w http.ResponseWriter, r *http.Request) {
 
 	text := string(body)
 
+	if (text = "") {
+		sessions[user] = ""
+		ahgoraBatidas(user, w, r)
+		return
+	}
+
 	// TODO: delete after test
 	// text = "09:35, 12:18, 14:17"
 
