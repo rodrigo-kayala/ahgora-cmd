@@ -241,7 +241,7 @@ func ahgoraBatidas(user string, w http.ResponseWriter, r *http.Request) {
 
 	text := string(body)
 
-	if (text = "") {
+	if (text == "") {
 		sessions[user] = ""
 		ahgoraBatidas(user, w, r)
 		return
