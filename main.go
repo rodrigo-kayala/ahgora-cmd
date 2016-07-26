@@ -132,11 +132,11 @@ func printBatidas(sessionID string) {
 			totalDuration = totalDuration + duration
 		}
 
-		text += "Horas trabalhadas - " + totalDuration.String() + "\n"
+		text += "Horas trabalhadas - " + (totalDuration - (totalDuration % time.Second)).String() + "\n"
 
 		pending := (time.Duration(8) * time.Hour) - totalDuration
 
-		text += "Restante - " + pending.String() + "\n"
+		text += "Restante - " + (pending - (pending % time.Second)).String() + "\n"
 
 		if batidasArrLen%2 != 0 {
 			text += "Sair as - " + now.Add(pending).Format("15:04") + "\n"
