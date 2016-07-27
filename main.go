@@ -68,6 +68,21 @@ func makeRequest(url string, method string, headers map[string]string, cookies m
 
 }
 
+func getWorkDays() int {
+	t := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 24, 0, 0, 0, time.UTC)
+	f := time.Date(2016, time.October, 31, 24, 0, 0, 0, time.UTC)
+	days := 0
+	for {
+		if t.Equal(f) {
+			return days
+		}
+		if t.Weekday() != 6 && t.Weekday() != 7 {
+			days++
+		}
+		t = t.Add(time.Hour * 24)
+	}
+}
+
 func printBatidas(sessionID string) {
 	headers := map[string]string{"User-Agent": "gurbieta-bot"}
 	cookies := map[string]string{"PHPSESSID": sessionID}
@@ -89,10 +104,31 @@ func printBatidas(sessionID string) {
 
 	now := time.Now().In(locSP)
 
-	todayStr := now.Format("02/01/2006")
-	start := todayStr + "                        \u003ctd rowspan=\"\"\u003e\n                                                        08:00 as 17:00 - 08:00 as 17:00                        \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
-	end := "\u003c/td\u003e\n                        \u003ctd\u003e"
+	start := "<td>SALDO</td>\n                            <td class=\"text-right danger\">\n  "
+	end := "</td>\n                        </tr>"
+
 	body, _, err := getHTMLPart(res.Body, start, end)
+
+	if err != nil {
+		panic(err)
+	}
+
+	saldo := strings.TrimSpace(string(body))
+	saldoDuration, _ := time.ParseDuration(strings.Replace(saldo, ":", "h", 1) + "m")
+	fmt.Print("Saldo: " + saldoDuration.String() + "\n")
+
+	workHours := getWorkDays() * 8
+
+	fmt.Printf("Dias uteis até o fechamento: %d\n", workHours/8)
+	fmt.Printf("Horas até o fechamento: %d\n", workHours)
+	minutesPerDay := ((saldoDuration.Minutes() * -1) / float64(getWorkDays()))
+	fmt.Printf("Minutos adicionais por dia: %f\n", minutesPerDay)
+	fmt.Printf("Total desejado de trabalho por dia: %s\n", time.Duration(minutesPerDay+(8*60))*time.Minute)
+
+	todayStr := now.Format("02/01/2006")
+	start = todayStr + "                        \u003ctd rowspan=\"\"\u003e\n                                                        08:00 as 17:00 - 08:00 as 17:00                        \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
+	end = "\u003c/td\u003e\n                        \u003ctd\u003e"
+	body, _, err = getHTMLPart(res.Body, start, end)
 
 	if err != nil {
 		panic(err)
@@ -139,7 +175,7 @@ func printBatidas(sessionID string) {
 
 		pending := (time.Duration(8) * time.Hour) - totalDuration
 
-		text += "Restante - " + (pending - (pending % time.Second)).String() + "\n"
+		text += "Restante - " + ((pending - (pending % time.Second)) + time.Duration(minutesPerDay)*time.Minute).String() + "\n"
 
 		if batidasArrLen%2 != 0 {
 			text += "Sair as - " + now.Add(pending).Format("15:04") + "\n"
