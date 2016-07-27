@@ -179,7 +179,7 @@ func printBatidas(sessionID string) {
 		text += "Restante - " + ((pending - (pending % time.Second)) + time.Duration(minutesPerDay)*time.Minute).String() + "\n"
 
 		if batidasArrLen%2 != 0 {
-			text += "Sair as - " + now.Add(pending).Format("15:04") + "\n"
+			text += "Sair as - " + now.Add(pending+time.Duration(minutesPerDay)*time.Minute).Format("15:04") + "\n"
 		}
 	}
 
