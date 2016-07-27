@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -121,8 +122,8 @@ func printBatidas(sessionID string) {
 
 	fmt.Printf("Dias uteis até o fechamento: %d\n", workHours/8)
 	fmt.Printf("Horas até o fechamento: %d\n", workHours)
-	minutesPerDay := ((saldoDuration.Minutes() * -1) / float64(getWorkDays()))
-	fmt.Printf("Minutos adicionais por dia: %f\n", minutesPerDay)
+	minutesPerDay := math.Ceil(((saldoDuration.Minutes() * -1) / float64(getWorkDays())))
+	fmt.Printf("Minutos adicionais por dia: %s\n", (time.Duration(minutesPerDay) * time.Minute).String())
 	fmt.Printf("Total desejado de trabalho por dia: %s\n", time.Duration(minutesPerDay+(8*60))*time.Minute)
 
 	todayStr := now.Format("02/01/2006")
