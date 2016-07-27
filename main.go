@@ -135,17 +135,13 @@ func printBatidas(sessionID string) {
 		panic(err)
 	}
 
-	text := string(body)
-
-	if text == "" {
-		panic("cannot get time")
-	}
+	text := strings.TrimSpace(string(body))
 
 	batidasArr := strings.Split(text, ",")
 	batidasArrLen := len(batidasArr)
 
-	if batidasArrLen == 0 {
-		text = "Ainda não tem batidas para o " + todayStr
+	if batidasArrLen == 0 || text == "" {
+		text = fmt.Sprintf("Ainda não tem batidas para o %v\n", todayStr)
 	} else {
 		text = "Batidas - " + text + "\n"
 
