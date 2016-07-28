@@ -3,7 +3,6 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -11,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rodrigo-kayala/ahgora-cmd/reader"
+	"github.com/PuerkitoBio/goquery"
 )
 
 const ahgoraLogin = "https://www.ahgora.com.br/externo/login"
@@ -197,73 +196,83 @@ func NewUserRecord(login UserLogin, closingDate time.Time, holydays int, working
 
 	defer res.Body.Close()
 
+	balance, recordsText := extractDataFromHTML(res)
+
 	ur := UserRecord{
 		ClosingDate:          closingDate,
 		HolydaysTilClosing:   holydays,
 		StandardWorkingHours: workingHours,
-		HoursBalance:         extractHoursBalance(res),
-		TodayRecords:         extractRecords(res)}
+		HoursBalance:         parseBalance(balance),
+		TodayRecords:         parseRecords(recordsText)}
 
 	return ur
 }
 
-func extractHoursBalance(res *http.Response) time.Duration {
-	start := "<td>SALDO</td>\n                            <td class=\"text-right danger\">\n  "
-	end := "</td>\n                        </tr>"
+func extractDataFromHTML(res *http.Response) (balance string, recordsText string) {
+	body, _ := ioutil.ReadAll(res.Body)
 
-	body, err := getHTMLPart(res.Body, start, end)
-	if err != nil {
-		panic(err)
-	}
+	htmlText := string(body)
+	html, _ := goquery.NewDocumentFromReader(strings.NewReader(htmlText))
 
-	balanceText := strings.TrimSpace(string(body))
+	balanceCount := 0
+	balance = ""
+	today := time.Now().Format("02/01/2006")
+	todayCount := 0
+	recordsText = ""
+
+	html.Find("tr").Each(func(i int, s *goquery.Selection) {
+
+		s.Children().Each(func(j int, td *goquery.Selection) {
+			if balanceCount == 1 {
+				balance = td.Text()
+				balanceCount = 0
+			}
+
+			if todayCount == 2 {
+				recordsText = td.Text()
+				todayCount = 0
+			} else if todayCount > 0 {
+				todayCount++
+			}
+
+			if strings.Contains(td.Text(), "SALDO") {
+				balanceCount++
+			}
+
+			if strings.Contains(td.Text(), today) {
+				todayCount++
+			}
+		})
+	})
+
+	return
+}
+
+func parseBalance(balanceText string) time.Duration {
+
+	balanceText = strings.TrimSpace(string(balanceText))
 	balance, _ := time.ParseDuration(strings.Replace(balanceText, ":", "h", 1) + "m")
 
 	return balance
 }
 
-func extractRecords(res *http.Response) []time.Time {
+func parseRecords(recordsText string) []time.Time {
 	locSP, _ := time.LoadLocation("America/Sao_Paulo")
+	today := time.Now().Format("02/01/2006")
 
-	todayStr := time.Now().Format("02/01/2006")
-	// TODO: Melhorar isso
-	start := todayStr + "                        \u003ctd rowspan=\"\"\u003e\n " +
-		"                                                       08:00 as 17:00 - 08:00 as 17:00  " +
-		"                      \u003c/td\u003e\n                        \u003ctd rowspan=\"\"\u003e"
-	end := "\u003c/td\u003e\n                        \u003ctd\u003e"
-	body, err := getHTMLPart(res.Body, start, end)
-
-	if err != nil {
-		panic(err)
-	}
-
-	text := strings.TrimSpace(string(body))
-
-	batidasArr := strings.Split(text, ",")
+	recordsText = strings.TrimSpace(recordsText)
+	batidasArr := strings.Split(recordsText, ",")
 
 	var records []time.Time
 
 	for _, batida := range batidasArr {
-		dateStr := fmt.Sprintf("%s %s", todayStr, strings.TrimSpace(batida))
+		dateStr := fmt.Sprintf("%s %s", today, strings.TrimSpace(batida))
 		record, _ := time.ParseInLocation("02/01/2006 15:04", dateStr, locSP)
 
 		records = append(records, record)
 	}
 
 	return records
-}
-
-func getHTMLPart(r io.Reader, startMark string, endMark string) (string, error) {
-	str := reader.NewSkipTillReader(r, []byte(startMark))
-	rtr := reader.NewReadTillReader(str, []byte(endMark))
-	bs, err := ioutil.ReadAll(rtr)
-	if err != nil {
-		return "", err
-	}
-	text := string(bs)
-	text = strings.Replace(text, startMark, "", 1)
-	text = strings.Replace(text, endMark, "", 1)
-	return text, err
 }
 
 func zeroHourDate(date time.Time) time.Time {
