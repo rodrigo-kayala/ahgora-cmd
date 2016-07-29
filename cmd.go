@@ -16,8 +16,17 @@ const ahgoraUsernameEnv = "AHGORA_USERNAME"
 const ahgoraPasswordEnv = "AHGORA_PASSWORD"
 
 func main() {
-	flag.String("help", "", "display this help")
+
+	help := flag.Bool("h", false, "display this help")
+	cd := flag.String("c", "2016-11-01", "closing date in format YYYY-MM-DD")
+	holidays := flag.Int("ho", 0, "holydays until closing")
+	workingHours := flag.Int("w", 8, "working hours per day")
 	flag.Parse()
+
+	if *help == true {
+		flag.PrintDefaults()
+		return
+	}
 
 	company := os.Getenv(ahgoraCompanyEnv)
 	if company == "" {
@@ -34,12 +43,17 @@ func main() {
 		panic("password env " + ahgoraPasswordEnv + " not set")
 	}
 
-	closingDate := time.Date(2016, time.October, 31, 24, 0, 0, 0, time.UTC)
+	closingDate, err := time.Parse("2006-01-02", *cd)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("params: -c %v -ho %v -w %v\n", closingDate, *holidays, *workingHours)
 
 	login := parser.UserLogin{
 		Company:  company,
 		Username: username,
 		Password: password}
-	record := parser.NewUserRecord(login, closingDate, 0, 8)
+	record := parser.NewUserRecord(login, closingDate, *holidays, *workingHours)
 	fmt.Printf(record.String())
 }

@@ -69,7 +69,7 @@ func (ur UserRecord) TodayWorkedHours() time.Duration {
 
 // LeaveAt returns da time de user should leave
 func (ur UserRecord) LeaveAt() time.Time {
-	pending := (time.Duration(8) * time.Hour) - ur.TodayWorkedHours()
+	pending := (time.Duration(ur.StandardWorkingHours) * time.Hour) - ur.TodayWorkedHours()
 	return time.Now().Add(pending + ur.MinutesAdjustmentPerDay())
 }
 
